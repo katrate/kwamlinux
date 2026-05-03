@@ -20,20 +20,25 @@ jobs:
           pacman -Syu --noconfirm
           pacman -S --noconfirm archiso git curl
 
-      - name: Make scripts executable
+      - name: Find and run build script
         run: |
+          # Find build.sh wherever it is in the repo
+          BUILD=$(find . -name "build.sh" | head -1)
+          echo "Found build.sh at: $BUILD"
+          DIR=$(dirname "$BUILD")
+          cd "$DIR"
           chmod +x build.sh
-          chmod +x scripts/install.sh 2>/dev/null || true
-          chmod +x install-theme.sh 2>/dev/null || true
-
-      - name: Build Kwamlinux ISO
-        run: |
           mkdir -p output
           sudo ./build.sh
 
-      - name: Upload ISO as artifact
+      - name: Collect ISO
+        run: |
+          mkdir -p /final
+          find . -name "*.iso" -exec cp {} /final/ \;
+
+      - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
           name: KwamLinux-ISO
-          path: output/*.iso
+          path: /final/*.iso
           retention-days: 30
