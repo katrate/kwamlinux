@@ -1,0 +1,30 @@
+<svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f0c29"/>
+      <stop offset="100%" stop-color="#302b63"/>
+    </linearGradient>
+    <radialGradient id="r1" cx="20%" cy="20%" r="60%">
+      <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+    <radialGradient id="r2" cx="80%" cy="70%" r="50%">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+    <radialGradient id="r3" cx="60%" cy="10%" r="40%">
+      <stop offset="0%" stop-color="#ec4899" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+    <filter id="f1"><feGaussianBlur stdDeviation="120"/></filter>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#g1)"/>
+  <rect width="1920" height="1080" fill="url(#r1)" filter="url(#f1)"/>
+  <rect width="1920" height="1080" fill="url(#r2)" filter="url(#f1)"/>
+  <rect width="1920" height="1080" fill="url(#r3)" filter="url(#f1)"/>
+  <!-- Noise grain effect via subtle pattern -->
+  <filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/>
+    <feColorMatrix type="saturate" values="0"/><feBlend in="SourceGraphic" mode="overlay" result="blend"/>
+  </filter>
+  <rect width="1920" height="1080" filter="url(#noise)" opacity="0.03"/>
+</svg>

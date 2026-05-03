@@ -1,0 +1,36 @@
+{
+  "name": "kwamlinux-welcome",
+  "version": "1.0.0",
+  "description": "Kwamlinux Welcome App",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --linux",
+    "build-deb": "electron-builder --linux deb",
+    "build-appimage": "electron-builder --linux appimage"
+  },
+  "build": {
+    "appId": "org.kwamlinux.welcome",
+    "productName": "Kwamlinux Welcome",
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "assets/icon.png",
+      "category": "Utility",
+      "desktop": {
+        "Name": "Kwamlinux Welcome",
+        "Comment": "Welcome to Kwamlinux",
+        "Categories": "Utility;",
+        "StartupNotify": "true",
+        "X-GNOME-Autostart-enabled": "true"
+      }
+    },
+    "files": ["src/**/*", "assets/**/*"]
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "author": "Kwamlinux Project",
+  "license": "GPL-3.0"
+}

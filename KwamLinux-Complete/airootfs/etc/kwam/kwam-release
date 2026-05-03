@@ -1,0 +1,10 @@
+NAME="Kwam Linux"
+VERSION="1.0.0"
+ID=kwam
+ID_LIKE=arch
+PRETTY_NAME="Kwam Linux 1.0.0"
+ANSI_COLOR="1;35"
+HOME_URL="https://kwamlinux.org"
+SUPPORT_URL="https://kwamlinux.org/support"
+BUILD_ID=rolling
+VARIANT="Security & Customization Edition"

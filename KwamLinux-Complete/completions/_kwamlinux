@@ -1,0 +1,82 @@
+#compdef kwam
+# ZSH completion for Came Linux package manager
+
+_kwam() {
+    local state line
+    typeset -A opt_args
+
+    _arguments -C \
+        '1: :_kwam_commands' \
+        '*:: :->args'
+
+    case $state in
+        args)
+            case $line[1] in
+                install|i)       _came_packages ;;
+                remove|r)        _came_installed ;;
+                search|s)        _message 'search query' ;;
+                info)            _came_packages ;;
+                security|sec)    _came_security_sub ;;
+                windows|win)     _came_windows_sub ;;
+                *)               ;;
+            esac
+            ;;
+    esac
+}
+
+_kwamlinux_commands() {
+    local commands=(
+        'install:Install package(s)'
+        'i:Install package(s) (alias)'
+        'remove:Remove package(s)'
+        'r:Remove package(s) (alias)'
+        'update:Update all packages'
+        'upgrade:Full system upgrade'
+        'search:Search packages'
+        's:Search packages (alias)'
+        'info:Show package information'
+        'list:List installed packages'
+        'orphans:List orphaned packages'
+        'clean:Clean package cache'
+        'security:Security tool management'
+        'windows:Windows app management'
+        'harden:Run system hardening'
+        'audit:Run security audit'
+        'mirror:Update and rank mirrors'
+        'status:System health overview'
+        'logs:Show kwamlinux logs'
+        'version:Show version'
+        'help:Show help'
+    )
+    _describe 'command' commands
+}
+
+_came_security_sub() {
+    local subs=(
+        'install:Install all security tools'
+        'list:List available security tools'
+        'update:Update security tools'
+    )
+    _describe 'security subcommand' subs
+}
+
+_came_windows_sub() {
+    local subs=(
+        'install:Install a Windows app'
+        'list:List installed Windows apps'
+        'run:Run a Windows app'
+    )
+    _describe 'windows subcommand' subs
+}
+
+_came_packages() {
+    local packages=($(pacman -Ssq 2>/dev/null | head -200))
+    compadd -a packages
+}
+
+_came_installed() {
+    local installed=($(pacman -Qq 2>/dev/null))
+    compadd -a installed
+}
+
+_kwamlinux

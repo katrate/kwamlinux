@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Came Linux</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg:       #0d0b1a;
+    --bg2:      #110e22;
+    --bg3:      #16122e;
+    --card:     rgba(20,16,40,0.85);
+    --border:   rgba(139,92,246,0.18);
+    --purple:   #8b5cf6;
+    --purple2:  #a78bfa;
+    --cyan:     #22d3ee;
+    --green:    #34d399;
+    --red:      #f87171;
+    --text:     #e2d9ff;
+    --muted:    rgba(200,192,255,0.55);
+    --font:     'Inter', sans-serif;
+    --mono:     'JetBrains Mono', monospace;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Background orbs */
+  .orbs { position:fixed; inset:0; pointer-events:none; z-index:0; }
+  .orb { position:absolute; border-radius:50%; filter:blur(100px); }
+  .orb1 { width:500px; height:500px; background:radial-gradient(circle,rgba(109,40,217,0.4),transparent); top:-120px; left:-100px; }
+  .orb2 { width:350px; height:350px; background:radial-gradient(circle,rgba(34,211,238,0.15),transparent); bottom:-60px; right:0; }
+  .orb3 { width:250px; height:250px; background:radial-gradient(circle,rgba(52,211,153,0.12),transparent); top:200px; right:100px; }
+
+  /* Layout */
+  .app { display:flex; height:100vh; position:relative; z-index:1; }
+
+  /* Sidebar */
+  .sidebar {
+    width:220px; flex-shrink:0;
+    background:rgba(10,8,22,0.8);
+    backdrop-filter:blur(20px);
+    border-right:1px solid var(--border);
+    display:flex; flex-direction:column;
+    padding:0;
+  }
+  .logo-area {
+    padding:28px 20px 24px;
+    border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:12px;
+  }
+  .logo-icon {
+    width:36px; height:36px;
+    background:linear-gradient(135deg,#7c3aed,#a78bfa);
+    border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .logo-icon svg { width:20px; height:20px; }
+  .logo-text { font-size:15px; font-weight:600; color:var(--text); }
+  .logo-sub  { font-size:10px; color:var(--muted); font-weight:400; }
+
+  nav { flex:1; padding:12px 10px; }
+  .nav-section { font-size:9px; font-weight:500; color:var(--muted); text-transform:uppercase;
+    letter-spacing:0.08em; padding:8px 10px 4px; }
+  .nav-item {
+    display:flex; align-items:center; gap:10px;
+    padding:9px 10px; border-radius:8px; cursor:pointer;
+    font-size:13px; color:rgba(200,192,255,0.7);
+    transition:all 0.15s; margin-bottom:2px;
+  }
+  .nav-item:hover { background:rgba(139,92,246,0.12); color:var(--text); }
+  .nav-item.active { background:rgba(139,92,246,0.22); color:var(--purple2); font-weight:500; }
+  .nav-icon { width:16px; height:16px; opacity:0.8; flex-shrink:0; }
+
+  .sidebar-footer { padding:16px; border-top:1px solid var(--border); }
+  .version-badge {
+    font-size:10px; font-family:var(--mono);
+    color:var(--muted); background:rgba(139,92,246,0.08);
+    border:1px solid var(--border); border-radius:6px;
+    padding:5px 10px; text-align:center;
+  }
+
+  /* Main */
+  .main { flex:1; overflow-y:auto; padding:32px 36px; }
+  .main::-webkit-scrollbar { width:4px; }
+  .main::-webkit-scrollbar-track { background:transparent; }
+  .main::-webkit-scrollbar-thumb { background:rgba(139,92,246,0.3); border-radius:4px; }
+
+  /* Pages */
+  .page { display:none; animation:fadein 0.25s ease; }
+  .page.active { display:block; }
+  @keyframes fadein { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+  /* Welcome page */
+  .welcome-hero { margin-bottom:36px; }
+  .welcome-hero h1 { font-size:32px; font-weight:300; line-height:1.2; margin-bottom:8px; }
+  .welcome-hero h1 span { color:var(--purple2); font-weight:600; }
+  .welcome-hero p { font-size:14px; color:var(--muted); line-height:1.6; max-width:480px; }
+
+  .cards { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:28px; }
+  .card {
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px; padding:20px;
+    backdrop-filter:blur(12px);
+    cursor:pointer; transition:all 0.2s;
+  }
+  .card:hover { border-color:rgba(139,92,246,0.4); transform:translateY(-2px);
+    box-shadow:0 8px 30px rgba(109,40,217,0.15); }
+  .card-icon { font-size:24px; margin-bottom:12px; }
+  .card-title { font-size:14px; font-weight:500; margin-bottom:4px; }
+  .card-desc { font-size:12px; color:var(--muted); line-height:1.5; }
+
+  /* Stats row */
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:28px; }
+  .stat {
+    background:rgba(139,92,246,0.06); border:1px solid var(--border);
+    border-radius:10px; padding:14px 16px;
+  }
+  .stat-val { font-size:20px; font-weight:600; color:var(--purple2); font-family:var(--mono); }
+  .stat-label { font-size:10px; color:var(--muted); margin-top:2px; }
+
+  /* Quick start steps */
+  .steps { }
+  .step {
+    display:flex; gap:16px; padding:16px 0;
+    border-bottom:1px solid rgba(139,92,246,0.08);
+  }
+  .step:last-child { border-bottom:none; }
+  .step-num {
+    width:28px; height:28px; flex-shrink:0;
+    background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.3);
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:500; color:var(--purple2);
+  }
+  .step-num.done { background:rgba(52,211,153,0.15); border-color:rgba(52,211,153,0.3); color:var(--green); }
+  .step-body { flex:1; }
+  .step-title { font-size:13px; font-weight:500; margin-bottom:4px; }
+  .step-desc  { font-size:12px; color:var(--muted); line-height:1.5; }
+  .step-cmd {
+    margin-top:8px; font-family:var(--mono); font-size:11px;
+    background:rgba(0,0,0,0.3); border:1px solid rgba(139,92,246,0.15);
+    border-radius:6px; padding:6px 10px; color:var(--purple2);
+    display:inline-block; cursor:pointer;
+  }
+  .step-cmd:hover { border-color:rgba(139,92,246,0.4); }
+
+  /* Security page */
+  .tools-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .tool-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:10px; padding:14px 16px;
+  }
+  .tool-cat { font-size:9px; font-weight:500; color:var(--purple);
+    text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px; }
+  .tool-list { display:flex; flex-wrap:wrap; gap:5px; }
+  .tool-badge {
+    font-size:10px; font-family:var(--mono);
+    background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.2);
+    border-radius:4px; padding:2px 7px; color:rgba(167,139,250,0.9);
+  }
+
+  /* Theme page */
+  .theme-options { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px; }
+  .theme-opt {
+    border:2px solid transparent; border-radius:12px;
+    overflow:hidden; cursor:pointer; transition:all 0.15s;
+  }
+  .theme-opt.selected { border-color:var(--purple); }
+  .theme-opt:hover { border-color:rgba(139,92,246,0.5); }
+  .theme-preview { height:70px; display:flex; flex-direction:column; }
+  .tp-bar { height:14px; }
+  .tp-body { flex:1; display:flex; align-items:flex-end; padding:4px; }
+  .tp-dock { height:8px; width:60%; margin:0 auto; border-radius:4px; }
+  .theme-name { font-size:11px; text-align:center; padding:6px; font-weight:500;
+    background:rgba(10,8,22,0.8); }
+
+  .accent-row { display:flex; gap:10px; align-items:center; margin-bottom:16px; }
+  .accent-label { font-size:12px; color:var(--muted); width:80px; }
+  .accent-colors { display:flex; gap:8px; }
+  .accent-dot {
+    width:22px; height:22px; border-radius:50%; cursor:pointer;
+    border:2px solid transparent; transition:all 0.15s;
+  }
+  .accent-dot.sel { border-color:white; transform:scale(1.15); }
+
+  /* Button */
+  .btn {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:9px 18px; border-radius:8px; font-size:13px;
+    font-weight:500; cursor:pointer; transition:all 0.15s;
+    border:none; font-family:var(--font);
+  }
+  .btn-primary {
+    background:linear-gradient(135deg,#7c3aed,#8b5cf6);
+    color:white;
+  }
+  .btn-primary:hover { filter:brightness(1.1); transform:translateY(-1px); }
+  .btn-outline {
+    background:transparent; color:var(--purple2);
+    border:1px solid rgba(139,92,246,0.35);
+  }
+  .btn-outline:hover { background:rgba(139,92,246,0.1); }
+
+  .page-title { font-size:20px; font-weight:500; margin-bottom:4px; }
+  .page-sub   { font-size:13px; color:var(--muted); margin-bottom:24px; line-height:1.5; }
+
+  /* Terminal-style block */
+  .term-block {
+    background:rgba(0,0,0,0.4); border:1px solid rgba(139,92,246,0.15);
+    border-radius:10px; padding:16px; font-family:var(--mono);
+    font-size:12px; color:#a78bfa; margin-top:16px;
+  }
+  .term-line { margin-bottom:6px; }
+  .term-p { color:#34d399; }
+  .term-c { color:#e2d9ff; }
+  .term-o { color:#9ca3af; }
+</style>
+</head>
+<body>
+<div class="orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo-area">
+      <div class="logo-icon">
+        <svg viewBox="0 0 20 20" fill="none">
+          <polygon points="10,2 18,16 2,16" fill="white" opacity="0.9"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-text">Came Linux</div>
+        <div class="logo-sub">v1.0.0 — rolling</div>
+      </div>
+    </div>
+
+    <nav>
+      <div class="nav-section">Get Started</div>
+      <div class="nav-item active" onclick="show('welcome',this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 1L2 6v8h4v-4h4v4h4V6L8 1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        Welcome
+      </div>
+      <div class="nav-item" onclick="show('quickstart',this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M6 5l5 3-5 3V5z" fill="currentColor"/></svg>
+        Quick Start
+      </div>
+
+      <div class="nav-section">Features</div>
+      <div class="nav-item" onclick="show('security',this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M8 1L2 4v5c0 3.3 2.5 5.8 6 7 3.5-1.2 6-3.7 6-7V4L8 1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        Security Tools
+      </div>
+      <div class="nav-item" onclick="show('theme',this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 4.5A3.5 3.5 0 1 1 8 11.5" stroke="currentColor" stroke-width="1.2"/></svg>
+        Appearance
+      </div>
+      <div class="nav-item" onclick="show('apps',this)">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/></svg>
+        Apps
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="version-badge">kwamlinux v1.0.0-rolling</div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+
+    <!-- WELCOME -->
+    <div class="page active" id="page-welcome">
+      <div class="welcome-hero">
+        <h1>Welcome to <span>Came Linux</span></h1>
+        <p>Security. Style. Power. — Your premium Arch-based OS with hacking tools, beautiful UI, and Windows app support.</p>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="stat-val">42+</div><div class="stat-label">Security Tools</div></div>
+        <div class="stat"><div class="stat-val">100%</div><div class="stat-label">Open Source</div></div>
+        <div class="stat"><div class="stat-val">AUR</div><div class="stat-label">Access to 80k+ pkgs</div></div>
+        <div class="stat"><div class="stat-val">Wine</div><div class="stat-label">Windows Apps</div></div>
+      </div>
+
+      <div class="cards">
+        <div class="card" onclick="show('quickstart',null)">
+          <div class="card-icon">🚀</div>
+          <div class="card-title">Quick Start Guide</div>
+          <div class="card-desc">Set up your system in minutes with essential first steps.</div>
+        </div>
+        <div class="card" onclick="show('security',null)">
+          <div class="card-icon">🔐</div>
+          <div class="card-title">Security Toolkit</div>
+          <div class="card-desc">Install nmap, Metasploit, Wireshark and 40+ more tools.</div>
+        </div>
+        <div class="card" onclick="show('theme',null)">
+          <div class="card-icon">🎨</div>
+          <div class="card-title">Customise Theme</div>
+          <div class="card-desc">Switch accent colours, enable blur effects and more.</div>
+        </div>
+        <div class="card" onclick="show('apps',null)">
+          <div class="card-icon">🪟</div>
+          <div class="card-title">Windows Apps</div>
+          <div class="card-desc">Run your favourite Windows software with Wine & Bottles.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUICK START -->
+    <div class="page" id="page-quickstart">
+      <div class="page-title">Quick Start</div>
+      <div class="page-sub">Follow these steps to get the most out of Came Linux.</div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num done">✓</div>
+          <div class="step-body">
+            <div class="step-title">Came Linux is installed</div>
+            <div class="step-desc">You are running Came Linux 1.0.0. The base system, KDE Plasma, and security tools are ready.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Update your system</div>
+            <div class="step-desc">Always start by bringing your system up to date.</div>
+            <div class="step-cmd">kwamlinux update</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Install security tools</div>
+            <div class="step-desc">Get the full Came security toolkit — nmap, Metasploit, Wireshark and more.</div>
+            <div class="step-cmd">kwamlinux security install</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Harden your system</div>
+            <div class="step-desc">Enable UFW firewall, fail2ban, AppArmor and SSH hardening in one command.</div>
+            <div class="step-cmd">kwamlinux harden</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <div class="step-title">Install an AUR package</div>
+            <div class="step-desc">Access 80,000+ packages from the Arch User Repository.</div>
+            <div class="step-cmd">kwamlinux install --aur &lt;package&gt;</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">6</div>
+          <div class="step-body">
+            <div class="step-title">Run a Windows app</div>
+            <div class="step-desc">Install and run Windows software using Wine and Bottles.</div>
+            <div class="step-cmd">kwamlinux windows install</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECURITY -->
+    <div class="page" id="page-security">
+      <div class="page-title">Security Toolkit</div>
+      <div class="page-sub">Came Linux ships with Kali-level tools pre-configured and ready to use.</div>
+
+      <div style="display:flex;gap:10px;margin-bottom:20px;">
+        <button class="btn btn-primary" onclick="void(0)">Install All Tools</button>
+        <button class="btn btn-outline" onclick="void(0)">Run Security Audit</button>
+      </div>
+
+      <div class="tools-grid">
+        <div class="tool-card">
+          <div class="tool-cat">Network & Scanning</div>
+          <div class="tool-list">
+            <span class="tool-badge">nmap</span><span class="tool-badge">wireshark</span>
+            <span class="tool-badge">tcpdump</span><span class="tool-badge">netcat</span>
+            <span class="tool-badge">ettercap</span><span class="tool-badge">bettercap</span>
+          </div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-cat">Password & Crypto</div>
+          <div class="tool-list">
+            <span class="tool-badge">john</span><span class="tool-badge">hashcat</span>
+            <span class="tool-badge">hydra</span><span class="tool-badge">aircrack-ng</span>
+          </div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-cat">Web & Exploitation</div>
+          <div class="tool-list">
+            <span class="tool-badge">sqlmap</span><span class="tool-badge">gobuster</span>
+            <span class="tool-badge">nikto</span><span class="tool-badge">metasploit</span>
+            <span class="tool-badge">burpsuite</span>
+          </div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-cat">Reverse Engineering</div>
+          <div class="tool-list">
+            <span class="tool-badge">ghidra</span><span class="tool-badge">radare2</span>
+            <span class="tool-badge">gdb</span><span class="tool-badge">binwalk</span>
+            <span class="tool-badge">strace</span>
+          </div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-cat">Forensics</div>
+          <div class="tool-list">
+            <span class="tool-badge">volatility3</span><span class="tool-badge">foremost</span>
+            <span class="tool-badge">autopsy</span>
+          </div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-cat">Hardening</div>
+          <div class="tool-list">
+            <span class="tool-badge">ufw</span><span class="tool-badge">fail2ban</span>
+            <span class="tool-badge">apparmor</span><span class="tool-badge">firejail</span>
+            <span class="tool-badge">lynis</span><span class="tool-badge">rkhunter</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="term-block">
+        <div class="term-line"><span class="term-p">┌──(user@kwamlinux)-[~]</span></div>
+        <div class="term-line"><span class="term-p">└─$</span> <span class="term-c">kwamlinux security install</span></div>
+        <div class="term-line"><span class="term-o">✔ Installing 24 security tools...</span></div>
+        <div class="term-line"><span class="term-o">✔ Security toolkit ready!</span></div>
+      </div>
+    </div>
+
+    <!-- THEME -->
+    <div class="page" id="page-theme">
+      <div class="page-title">Appearance</div>
+      <div class="page-sub">Customise Came Linux to match your style.</div>
+
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Theme</div>
+      <div class="theme-options">
+        <div class="theme-opt selected" onclick="selectTheme(this)">
+          <div class="theme-preview">
+            <div class="tp-bar" style="background:#0d0b1a;"></div>
+            <div class="tp-body" style="background:linear-gradient(135deg,#0d0a1a,#110d24);">
+              <div class="tp-dock" style="background:rgba(139,92,246,0.3);"></div>
+            </div>
+          </div>
+          <div class="theme-name">Came Dark</div>
+        </div>
+        <div class="theme-opt" onclick="selectTheme(this)">
+          <div class="theme-preview">
+            <div class="tp-bar" style="background:#1e1e1e;"></div>
+            <div class="tp-body" style="background:linear-gradient(135deg,#1a1a2e,#16213e);">
+              <div class="tp-dock" style="background:rgba(34,211,238,0.3);"></div>
+            </div>
+          </div>
+          <div class="theme-name">Midnight Blue</div>
+        </div>
+        <div class="theme-opt" onclick="selectTheme(this)">
+          <div class="theme-preview">
+            <div class="tp-bar" style="background:#f5f5f0;"></div>
+            <div class="tp-body" style="background:linear-gradient(135deg,#f0f0f5,#e8e8f0);">
+              <div class="tp-dock" style="background:rgba(139,92,246,0.25);"></div>
+            </div>
+          </div>
+          <div class="theme-name">Light (Coming Soon)</div>
+        </div>
+      </div>
+
+      <div class="accent-row">
+        <div class="accent-label" style="font-size:12px;color:var(--muted);">Accent color</div>
+        <div class="accent-colors">
+          <div class="accent-dot sel" style="background:#8b5cf6" onclick="selAccent(this)"></div>
+          <div class="accent-dot" style="background:#3b82f6" onclick="selAccent(this)"></div>
+          <div class="accent-dot" style="background:#10b981" onclick="selAccent(this)"></div>
+          <div class="accent-dot" style="background:#f59e0b" onclick="selAccent(this)"></div>
+          <div class="accent-dot" style="background:#ef4444" onclick="selAccent(this)"></div>
+          <div class="accent-dot" style="background:#ec4899" onclick="selAccent(this)"></div>
+          <div class="accent-dot" style="background:#22d3ee" onclick="selAccent(this)"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="margin-top:12px">Apply Theme</button>
+    </div>
+
+    <!-- APPS -->
+    <div class="page" id="page-apps">
+      <div class="page-title">Applications</div>
+      <div class="page-sub">Came Linux supports native Linux apps and Windows apps via Wine.</div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-icon">🐧</div>
+          <div class="card-title">Linux Apps (pacman / AUR)</div>
+          <div class="card-desc">80,000+ packages available. Install anything from the official repos or AUR.</div>
+          <div class="step-cmd" style="margin-top:10px">kwamlinux search &lt;app&gt;</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">🍷</div>
+          <div class="card-title">Windows Apps (Wine)</div>
+          <div class="card-desc">Run .exe applications using Wine with Bottles for easy management.</div>
+          <div class="step-cmd" style="margin-top:10px">kwamlinux windows install</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">🎮</div>
+          <div class="card-title">Gaming (Proton)</div>
+          <div class="card-desc">Play Windows games on Came Linux via Steam + Proton or Lutris.</div>
+          <div class="step-cmd" style="margin-top:10px">kwamlinux install lutris</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">🐳</div>
+          <div class="card-title">Containers (Docker)</div>
+          <div class="card-desc">Run any app in isolated containers with Docker and Docker Compose.</div>
+          <div class="step-cmd" style="margin-top:10px">kwamlinux install docker</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function show(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+  else {
+    document.querySelectorAll('.nav-item').forEach(n => {
+      if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) {
+        n.classList.add('active');
+      }
+    });
+  }
+}
+function selectTheme(el) {
+  document.querySelectorAll('.theme-opt').forEach(t => t.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function selAccent(el) {
+  document.querySelectorAll('.accent-dot').forEach(d => d.classList.remove('sel'));
+  el.classList.add('sel');
+}
+</script>
+</body>
+</html>

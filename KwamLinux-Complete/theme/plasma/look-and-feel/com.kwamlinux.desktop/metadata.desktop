@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Kwam Dark
+Comment=Premium dark theme for Kwam Linux with glassmorphism and macOS-like feel
+X-KDE-PluginInfo-Name=com.kwamlinux.desktop
+X-KDE-PluginInfo-Version=1.0.0
+X-KDE-PluginInfo-Author=Kwam Linux Project
+X-KDE-PluginInfo-Email=theme@kwamlinux.org
+X-KDE-PluginInfo-Website=https://kwamlinux.org
+X-KDE-PluginInfo-License=GPL-3.0
+X-KDE-ServiceTypes=Plasma/LookAndFeel

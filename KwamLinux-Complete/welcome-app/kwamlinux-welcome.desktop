@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Kwamlinux Welcome
+GenericName=Welcome Screen
+Comment=Welcome to Kwamlinux Linux
+Exec=/usr/lib/kwamlinux/welcome/kwamlinux-welcome
+Icon=kwamlinux-welcome
+Terminal=false
+Categories=Utility;
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=3
+Keywords=welcome;setup;kwamlinux;

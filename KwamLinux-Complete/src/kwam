@@ -1,0 +1,454 @@
+#!/bin/bash
+# ============================================================
+#  KWAM - Came Linux Package Manager
+#  A smart wrapper around pacman + AUR + security tools
+#  Version: 1.0.0
+# ============================================================
+
+VERSION="1.0.0"
+DISTRO="Came Linux"
+
+# Colors
+R='\033[0;31m' G='\033[0;32m' Y='\033[1;33m'
+C='\033[0;36m' P='\033[0;35m' B='\033[1;34m'
+W='\033[1;37m' D='\033[2m' NC='\033[0m' BOLD='\033[1m'
+
+# Config
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/kwamlinux"
+CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/kwamlinux/pkgmgr.conf"
+LOG_FILE="/var/log/kwamlinux/kwam.log"
+AUR_HELPER="yay"
+SECURITY_TOOLS_LIST="/usr/share/kwamlinux/security-tools.list"
+
+# ─── HELPERS ────────────────────────────────────────────────
+log()     { echo -e "${G}✔${NC} $1"; _log "INFO" "$1"; }
+warn()    { echo -e "${Y}!${NC} $1"; _log "WARN" "$1"; }
+error()   { echo -e "${R}✘${NC} $1"; _log "ERR" "$1"; exit 1; }
+info()    { echo -e "${C}→${NC} $1"; }
+section() { echo -e "\n${BOLD}${P}$1${NC}\n"; }
+dim()     { echo -e "${D}$1${NC}"; }
+
+_log() {
+    mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$1] $2" >> "$LOG_FILE" 2>/dev/null || true
+}
+
+confirm() {
+    echo -en "${Y}?${NC} $1 [Y/n] "
+    read -r ans
+    [[ -z "$ans" || "${ans,,}" == "y" ]]
+}
+
+spinner() {
+    local pid=$1 msg=$2
+    local sp='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    local i=0
+    while kill -0 "$pid" 2>/dev/null; do
+        printf "\r${C}%s${NC} %s" "${sp:$((i%10)):1}" "$msg"
+        sleep 0.08
+        ((i++))
+    done
+    printf "\r${G}✔${NC} %s\n" "$msg"
+}
+
+check_aur_helper() {
+    if ! command -v "$AUR_HELPER" &>/dev/null; then
+        warn "$AUR_HELPER not found. Installing..."
+        install_aur_helper
+    fi
+}
+
+install_aur_helper() {
+    info "Installing yay (AUR helper)..."
+    local tmp=$(mktemp -d)
+    git clone https://aur.archlinux.org/yay.git "$tmp/yay" &>/dev/null
+    (cd "$tmp/yay" && makepkg -si --noconfirm &>/dev/null)
+    rm -rf "$tmp"
+    log "yay installed"
+}
+
+# ─── BANNER ─────────────────────────────────────────────────
+banner() {
+    echo -e "${P}"
+    echo "  ██╗  ██╗██╗    ██╗ █████╗ ███╗   ███╗"
+    echo "  ██║ ██╔╝██║    ██║██╔══██╗████╗ ████║"
+    echo "  █████╔╝ ██║ █╗ ██║███████║██╔████╔██║"
+    echo "  ██╔═██╗ ██║███╗██║██╔══██║██║╚██╔╝██║"
+    echo "  ██║  ██╗╚███╔███╔╝██║  ██║██║ ╚═╝ ██║"
+    echo "  ╚═╝  ╚═╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝     ╚═╝"
+    echo -e "${C}       Package Manager v${VERSION}${NC}"
+    echo ""
+}
+
+# ─── HELP ───────────────────────────────────────────────────
+show_help() {
+    banner
+    echo -e "${BOLD}USAGE${NC}"
+    echo -e "  kwam ${C}<command>${NC} [options] [package(s)]"
+    echo ""
+    echo -e "${BOLD}PACKAGE COMMANDS${NC}"
+    echo -e "  ${C}install${NC}, ${C}i${NC}     <pkg>     Install package(s)"
+    echo -e "  ${C}remove${NC},  ${C}r${NC}     <pkg>     Remove package(s)"
+    echo -e "  ${C}update${NC},  ${C}u${NC}              Update all packages"
+    echo -e "  ${C}upgrade${NC}               Full system upgrade"
+    echo -e "  ${C}search${NC},  ${C}s${NC}     <query>   Search packages"
+    echo -e "  ${C}info${NC}          <pkg>     Show package info"
+    echo -e "  ${C}list${NC}                   List installed packages"
+    echo -e "  ${C}orphans${NC}               List orphaned packages"
+    echo -e "  ${C}clean${NC}                  Clean package cache"
+    echo ""
+    echo -e "${BOLD}SECURITY COMMANDS${NC}"
+    echo -e "  ${C}security install${NC}       Install all security tools"
+    echo -e "  ${C}security list${NC}          List available security tools"
+    echo -e "  ${C}security update${NC}        Update security tools"
+    echo -e "  ${C}harden${NC}                 Run system hardening"
+    echo -e "  ${C}audit${NC}                  Run security audit (lynis)"
+    echo ""
+    echo -e "${BOLD}WINE/WINDOWS COMMANDS${NC}"
+    echo -e "  ${C}windows install${NC} <app>  Install Windows app via Wine"
+    echo -e "  ${C}windows list${NC}           List installed Windows apps"
+    echo -e "  ${C}windows run${NC}     <app>  Run a Windows app"
+    echo ""
+    echo -e "${BOLD}SYSTEM COMMANDS${NC}"
+    echo -e "  ${C}status${NC}                 System health overview"
+    echo -e "  ${C}mirror${NC}                 Update & rank mirrors"
+    echo -e "  ${C}logs${NC}                   Show kwam logs"
+    echo -e "  ${C}version${NC}               Show version info"
+    echo ""
+    echo -e "${BOLD}OPTIONS${NC}"
+    echo -e "  ${C}--aur${NC}                  Include AUR packages"
+    echo -e "  ${C}--noconfirm${NC}            Skip confirmations"
+    echo -e "  ${C}--verbose${NC}, ${C}-v${NC}          Verbose output"
+    echo ""
+    echo -e "${D}Docs: https://kwamlinux.org/docs/kwam${NC}"
+}
+
+# ─── INSTALL ────────────────────────────────────────────────
+cmd_install() {
+    [[ $# -eq 0 ]] && error "No package specified. Usage: kwam install <package>"
+    section "Installing: $*"
+
+    local aur_flag=""
+    local pkgs=()
+    for arg in "$@"; do
+        [[ "$arg" == "--aur" ]] && aur_flag="aur" || pkgs+=("$arg")
+    done
+
+    if [[ -n "$aur_flag" ]]; then
+        check_aur_helper
+        info "Searching AUR + repos for: ${pkgs[*]}"
+        $AUR_HELPER -S --needed "${pkgs[@]}"
+    else
+        # Try official repos first, fall back to AUR
+        local official=() aur_pkgs=()
+        for pkg in "${pkgs[@]}"; do
+            if pacman -Si "$pkg" &>/dev/null; then
+                official+=("$pkg")
+            else
+                warn "$pkg not in official repos — will try AUR"
+                aur_pkgs+=("$pkg")
+            fi
+        done
+        [[ ${#official[@]} -gt 0 ]] && sudo pacman -S --needed "${official[@]}"
+        if [[ ${#aur_pkgs[@]} -gt 0 ]]; then
+            check_aur_helper
+            $AUR_HELPER -S --needed "${aur_pkgs[@]}"
+        fi
+    fi
+    log "Done!"
+}
+
+# ─── REMOVE ─────────────────────────────────────────────────
+cmd_remove() {
+    [[ $# -eq 0 ]] && error "No package specified."
+    section "Removing: $*"
+    confirm "Remove $* and its unused dependencies?" || exit 0
+    sudo pacman -Rs "$@"
+    log "Removed: $*"
+}
+
+# ─── UPDATE ─────────────────────────────────────────────────
+cmd_update() {
+    section "Updating Came Linux"
+
+    info "Refreshing mirrors..."
+    (sudo reflector --latest 10 --sort rate --save /etc/pacman.d/mirrorlist &>/dev/null) &
+    spinner $! "Ranking mirrors"
+
+    info "Updating packages..."
+    if command -v "$AUR_HELPER" &>/dev/null; then
+        $AUR_HELPER -Syu
+    else
+        sudo pacman -Syu
+    fi
+
+    log "System is up to date!"
+}
+
+# ─── SEARCH ─────────────────────────────────────────────────
+cmd_search() {
+    [[ $# -eq 0 ]] && error "No search query given."
+    section "Search: $*"
+
+    echo -e "${BOLD}Official Repos:${NC}"
+    pacman -Ss "$@" | while IFS= read -r line; do
+        if [[ "$line" =~ ^[a-z] ]]; then
+            echo -e "  ${C}$line${NC}"
+        else
+            echo -e "  ${D}$line${NC}"
+        fi
+    done
+
+    if command -v "$AUR_HELPER" &>/dev/null; then
+        echo -e "\n${BOLD}AUR:${NC}"
+        $AUR_HELPER -Ssa "$@" 2>/dev/null | head -20 | while IFS= read -r line; do
+            if [[ "$line" =~ ^aur/ ]]; then
+                echo -e "  ${P}$line${NC}"
+            else
+                echo -e "  ${D}$line${NC}"
+            fi
+        done
+    fi
+}
+
+# ─── INFO ────────────────────────────────────────────────────
+cmd_info() {
+    [[ $# -eq 0 ]] && error "No package specified."
+    pacman -Si "$1" 2>/dev/null || \
+    pacman -Qi "$1" 2>/dev/null || \
+    { check_aur_helper; $AUR_HELPER -Si "$1"; }
+}
+
+# ─── LIST ────────────────────────────────────────────────────
+cmd_list() {
+    section "Installed Packages"
+    local count=$(pacman -Q | wc -l)
+    info "Total: ${count} packages"
+    echo ""
+    pacman -Q | column -c 80
+}
+
+# ─── ORPHANS ─────────────────────────────────────────────────
+cmd_orphans() {
+    section "Orphaned Packages"
+    local orphans=$(pacman -Qtdq 2>/dev/null)
+    if [[ -z "$orphans" ]]; then
+        log "No orphaned packages found!"
+    else
+        echo "$orphans"
+        echo ""
+        confirm "Remove all orphaned packages?" && sudo pacman -Rs $orphans
+    fi
+}
+
+# ─── CLEAN ───────────────────────────────────────────────────
+cmd_clean() {
+    section "Cleaning Cache"
+    info "Removing old package cache..."
+    sudo pacman -Sc --noconfirm
+    if command -v "$AUR_HELPER" &>/dev/null; then
+        $AUR_HELPER -Sc --noconfirm
+    fi
+    rm -rf "$CACHE_DIR"/* 2>/dev/null || true
+    log "Cache cleaned!"
+}
+
+# ─── SECURITY ────────────────────────────────────────────────
+cmd_security() {
+    local sub="${1:-list}"; shift 2>/dev/null || true
+    case "$sub" in
+        install)
+            section "Installing Security Toolkit"
+            local tools=(
+                nmap wireshark-qt aircrack-ng john hashcat hydra
+                sqlmap gobuster nikto netcat tcpdump ettercap-gtk
+                bettercap binwalk radare2 ghidra gdb strace ltrace
+                rkhunter lynis clamav firejail exploitdb volatility3
+                foremost
+            )
+            info "Installing ${#tools[@]} security tools..."
+            sudo pacman -S --needed "${tools[@]}"
+            log "Security toolkit installed!"
+            ;;
+        list)
+            section "Available Security Tools"
+            echo -e "${BOLD}Network & Scanning:${NC}"
+            echo "  nmap, wireshark, tcpdump, netcat, ettercap, bettercap"
+            echo -e "${BOLD}Password & Crypto:${NC}"
+            echo "  john, hashcat, hydra, aircrack-ng"
+            echo -e "${BOLD}Web:${NC}"
+            echo "  sqlmap, gobuster, nikto, burpsuite"
+            echo -e "${BOLD}Exploitation:${NC}"
+            echo "  metasploit, exploitdb, binwalk, radare2, ghidra"
+            echo -e "${BOLD}Forensics:${NC}"
+            echo "  volatility3, foremost, autopsy, binwalk"
+            echo -e "${BOLD}Hardening:${NC}"
+            echo "  ufw, fail2ban, apparmor, firejail, clamav, rkhunter, lynis"
+            ;;
+        update)
+            section "Updating Security Tools"
+            cmd_update
+            ;;
+        *)
+            error "Unknown security subcommand: $sub"
+            ;;
+    esac
+}
+
+# ─── WINDOWS APPS ────────────────────────────────────────────
+cmd_windows() {
+    local sub="${1:-list}"; shift 2>/dev/null || true
+    case "$sub" in
+        install)
+            [[ $# -eq 0 ]] && error "Specify an app name"
+            section "Installing Windows App: $*"
+            if ! command -v wine &>/dev/null; then
+                warn "Wine not installed. Installing..."
+                sudo pacman -S --noconfirm wine wine-mono wine-gecko winetricks
+            fi
+            info "Launching Bottles for Windows app management..."
+            bottles &
+            log "Use Bottles to install: $*"
+            ;;
+        list)
+            section "Installed Windows Apps"
+            if command -v bottles &>/dev/null; then
+                bottles --cli list 2>/dev/null || info "Open Bottles to see Windows apps"
+            else
+                warn "Bottles not installed. Run: kwam install bottles"
+            fi
+            ;;
+        run)
+            [[ $# -eq 0 ]] && error "Specify an app to run"
+            wine "$@"
+            ;;
+        *)
+            error "Unknown windows subcommand: $sub"
+            ;;
+    esac
+}
+
+# ─── HARDEN ──────────────────────────────────────────────────
+cmd_harden() {
+    section "System Hardening"
+    info "Enabling firewall..."
+    sudo ufw --force enable
+    sudo ufw default deny incoming
+    sudo ufw default allow outgoing
+    log "UFW enabled (deny incoming)"
+
+    info "Enabling fail2ban..."
+    sudo systemctl enable --now fail2ban &>/dev/null
+    log "fail2ban enabled"
+
+    info "Enabling AppArmor..."
+    sudo systemctl enable --now apparmor &>/dev/null
+    log "AppArmor enabled"
+
+    info "Checking rkhunter database..."
+    sudo rkhunter --update &>/dev/null || true
+    log "rkhunter updated"
+
+    info "Setting secure SSH defaults..."
+    sudo sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+    sudo sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/' /etc/ssh/sshd_config
+    sudo systemctl restart sshd &>/dev/null || true
+    log "SSH hardened"
+
+    log "System hardening complete!"
+}
+
+# ─── AUDIT ───────────────────────────────────────────────────
+cmd_audit() {
+    section "Security Audit"
+    if ! command -v lynis &>/dev/null; then
+        warn "lynis not installed. Installing..."
+        sudo pacman -S --noconfirm lynis
+    fi
+    info "Running Lynis security audit..."
+    sudo lynis audit system
+}
+
+# ─── MIRROR ──────────────────────────────────────────────────
+cmd_mirror() {
+    section "Updating Mirrors"
+    info "Fetching fastest mirrors..."
+    (sudo reflector \
+        --latest 20 \
+        --sort rate \
+        --protocol https \
+        --save /etc/pacman.d/mirrorlist &>/dev/null) &
+    spinner $! "Ranking mirrors by speed"
+    log "Mirrors updated!"
+    cat /etc/pacman.d/mirrorlist | grep "^Server" | head -5 | while read -r l; do
+        dim "  $l"
+    done
+}
+
+# ─── STATUS ──────────────────────────────────────────────────
+cmd_status() {
+    section "Came Linux System Status"
+    local pkgs=$(pacman -Q | wc -l)
+    local updates=$(checkupdates 2>/dev/null | wc -l || echo "?")
+    local kern=$(uname -r)
+    local uptime=$(uptime -p)
+    local mem=$(free -h | awk '/^Mem:/{print $3 "/" $2}')
+    local disk=$(df -h / | awk 'NR==2{print $3 "/" $2 " (" $5 ")"}')
+    local fw=$(sudo ufw status 2>/dev/null | grep "Status:" | awk '{print $2}' || echo "unknown")
+
+    printf "  ${C}%-18s${NC} %s\n" "Kernel" "$kern"
+    printf "  ${C}%-18s${NC} %s\n" "Uptime" "$uptime"
+    printf "  ${C}%-18s${NC} %s\n" "Packages" "$pkgs installed"
+    printf "  ${C}%-18s${NC} %s\n" "Updates" "$updates available"
+    printf "  ${C}%-18s${NC} %s\n" "Memory" "$mem"
+    printf "  ${C}%-18s${NC} %s\n" "Disk (/)" "$disk"
+    printf "  ${C}%-18s${NC} %s\n" "Firewall" "$fw"
+    printf "  ${C}%-18s${NC} %s\n" "AUR Helper" "$(command -v $AUR_HELPER &>/dev/null && echo $AUR_HELPER || echo 'not installed')"
+    echo ""
+}
+
+# ─── LOGS ────────────────────────────────────────────────────
+cmd_logs() {
+    if [[ -f "$LOG_FILE" ]]; then
+        tail -50 "$LOG_FILE"
+    else
+        warn "No logs found at $LOG_FILE"
+    fi
+}
+
+# ─── VERSION ─────────────────────────────────────────────────
+cmd_version() {
+    echo -e "${P}Came Linux${NC} Package Manager ${C}v${VERSION}${NC}"
+    echo -e "${D}  Built on pacman · AUR via yay · By the Came Linux Project${NC}"
+}
+
+# ─── MAIN DISPATCHER ────────────────────────────────────────
+main() {
+    [[ $# -eq 0 ]] && { show_help; exit 0; }
+
+    local cmd="$1"; shift
+
+    case "$cmd" in
+        install|i)       cmd_install "$@" ;;
+        remove|r|uninstall) cmd_remove "$@" ;;
+        update|u)        cmd_update ;;
+        upgrade)         cmd_update ;;
+        search|s)        cmd_search "$@" ;;
+        info)            cmd_info "$@" ;;
+        list|ls)         cmd_list ;;
+        orphans)         cmd_orphans ;;
+        clean)           cmd_clean ;;
+        security|sec)    cmd_security "$@" ;;
+        windows|win)     cmd_windows "$@" ;;
+        harden)          cmd_harden ;;
+        audit)           cmd_audit ;;
+        mirror|mirrors)  cmd_mirror ;;
+        status)          cmd_status ;;
+        logs)            cmd_logs ;;
+        version|--version|-v) cmd_version ;;
+        help|--help|-h)  show_help ;;
+        *)               error "Unknown command: $cmd — run 'kwam help'" ;;
+    esac
+}
+
+main "$@"
