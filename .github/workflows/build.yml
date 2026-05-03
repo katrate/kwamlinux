@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: archlinux:latest
+      options: --privileged
 
     steps:
       - name: Checkout code
@@ -18,18 +19,19 @@ jobs:
       - name: Update system & install archiso
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm archiso git curl
+          pacman -S --noconfirm archiso git curl sudo
 
       - name: Find and run build script
         run: |
-          # Find build.sh wherever it is in the repo
           BUILD=$(find . -name "build.sh" | head -1)
-          echo "Found build.sh at: $BUILD"
+          echo "Found: $BUILD"
           DIR=$(dirname "$BUILD")
           cd "$DIR"
           chmod +x build.sh
+          # Remove sudo calls since we are already root
+          sed -i 's/sudo //g' build.sh
           mkdir -p output
-          sudo ./build.sh
+          bash build.sh
 
       - name: Collect ISO
         run: |
