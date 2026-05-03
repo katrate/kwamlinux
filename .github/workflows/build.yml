@@ -21,45 +21,24 @@ jobs:
 
       - name: Build Kwamlinux ISO
         run: |
-          # Start from official profile
           cp -r /usr/share/archiso/configs/releng/ /tmp/kwamlinux-profile
 
-          # APPEND our packages to the existing list (don't replace it)
           PKGLIST=$(find . -name "packages.x86_64" | head -1)
           if [ -n "$PKGLIST" ]; then
-            echo "" >> /tmp/kwamlinux-profile/packages.x86_64
-            echo "# Kwamlinux custom packages" >> /tmp/kwamlinux-profile/packages.x86_64
-            # Only append lines that are actual package names (skip comments/blanks)
             grep -v '^#' "$PKGLIST" | grep -v '^$' >> /tmp/kwamlinux-profile/packages.x86_64
-            echo "Custom packages appended"
           fi
 
-          # Overlay airootfs
           AIROOTFS=$(find . -type d -name "airootfs" | head -1)
           if [ -n "$AIROOTFS" ]; then
             cp -r "$AIROOTFS/." /tmp/kwamlinux-profile/airootfs/
           fi
 
-          # OS identity
           mkdir -p /tmp/kwamlinux-profile/airootfs/etc
-          cat > /tmp/kwamlinux-profile/airootfs/etc/os-release << 'EOF'
-NAME="Kwamlinux"
-VERSION="1.0.0"
-ID=kwamlinux
-ID_LIKE=arch
-PRETTY_NAME="Kwamlinux Linux 1.0.0"
-HOME_URL="https://kwamlinux.org"
-BUILD_ID=rolling
-EOF
+          printf 'NAME="Kwamlinux"\nVERSION="1.0.0"\nID=kwamlinux\nID_LIKE=arch\nPRETTY_NAME="Kwamlinux Linux 1.0.0"\nBUILD_ID=rolling\n' > /tmp/kwamlinux-profile/airootfs/etc/os-release
+          printf 'kwamlinux\n' > /tmp/kwamlinux-profile/airootfs/etc/hostname
 
-          echo "kwamlinux" > /tmp/kwamlinux-profile/airootfs/etc/hostname
-
-          # Build
           mkdir -p /tmp/kwamlinux-work /tmp/kwamlinux-out
-          mkarchiso -v \
-            -w /tmp/kwamlinux-work \
-            -o /tmp/kwamlinux-out \
-            /tmp/kwamlinux-profile
+          mkarchiso -v -w /tmp/kwamlinux-work -o /tmp/kwamlinux-out /tmp/kwamlinux-profile
 
       - name: Upload ISO
         uses: actions/upload-artifact@v4
