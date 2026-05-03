@@ -16,31 +16,53 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Update system & install archiso
-        run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm archiso git curl sudo
+      - name: Install archiso
+        run: pacman -Syu --noconfirm archiso git curl sudo
 
-      - name: Find and run build script
+      - name: Build Kwamlinux ISO
         run: |
-          BUILD=$(find . -name "build.sh" | head -1)
-          echo "Found: $BUILD"
-          DIR=$(dirname "$BUILD")
-          cd "$DIR"
-          chmod +x build.sh
-          # Remove sudo calls since we are already root
-          sed -i 's/sudo //g' build.sh
-          mkdir -p output
-          bash build.sh
+          # Copy official archiso baseline profile
+          cp -r /usr/share/archiso/configs/releng/ /tmp/kwamlinux-profile
 
-      - name: Collect ISO
-        run: |
-          mkdir -p /final
-          find . -name "*.iso" -exec cp {} /final/ \;
+          # Overlay our custom packages
+          PKGLIST=$(find . -name "packages.x86_64" | head -1)
+          if [ -n "$PKGLIST" ]; then
+            cp "$PKGLIST" /tmp/kwamlinux-profile/packages.x86_64
+            echo "Custom package list applied"
+          fi
+
+          # Overlay our custom airootfs files
+          AIROOTFS=$(find . -type d -name "airootfs" | head -1)
+          if [ -n "$AIROOTFS" ]; then
+            cp -r "$AIROOTFS/." /tmp/kwamlinux-profile/airootfs/
+            echo "Custom airootfs applied"
+          fi
+
+          # Set OS identity
+          mkdir -p /tmp/kwamlinux-profile/airootfs/etc
+          cat > /tmp/kwamlinux-profile/airootfs/etc/os-release << 'EOF'
+          NAME="Kwamlinux"
+          VERSION="1.0.0"
+          ID=kwamlinux
+          ID_LIKE=arch
+          PRETTY_NAME="Kwamlinux Linux 1.0.0"
+          HOME_URL="https://kwamlinux.org"
+          BUILD_ID=rolling
+          EOF
+
+          # Set hostname
+          echo "kwamlinux" > /tmp/kwamlinux-profile/airootfs/etc/hostname
+
+          # Build the ISO
+          mkdir -p /tmp/kwamlinux-work /tmp/kwamlinux-out
+          mkarchiso -v \
+            -w /tmp/kwamlinux-work \
+            -o /tmp/kwamlinux-out \
+            /tmp/kwamlinux-profile
 
       - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
           name: KwamLinux-ISO
-          path: /final/*.iso
+          path: /tmp/kwamlinux-out/*.iso
           retention-days: 30
