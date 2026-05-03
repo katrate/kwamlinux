@@ -21,24 +21,47 @@ jobs:
 
       - name: Build Kwamlinux ISO
         run: |
+          # Start from official archiso profile
           cp -r /usr/share/archiso/configs/releng/ /tmp/kwamlinux-profile
 
+          # Add our packages - only ones that exist in official repos
           PKGLIST=$(find . -name "packages.x86_64" | head -1)
           if [ -n "$PKGLIST" ]; then
-            grep -v '^#' "$PKGLIST" | grep -v '^$' >> /tmp/kwamlinux-profile/packages.x86_64
+            echo "Checking packages against official repos..."
+            while IFS= read -r pkg; do
+              [[ "$pkg" =~ ^#.*$ || -z "$pkg" ]] && continue
+              if pacman -Si "$pkg" &>/dev/null; then
+                echo "$pkg" >> /tmp/kwamlinux-profile/packages.x86_64
+              else
+                echo "  Skipping (AUR/missing): $pkg"
+              fi
+            done < "$PKGLIST"
+            echo "Package list ready"
           fi
 
+          # Overlay our airootfs customisations
           AIROOTFS=$(find . -type d -name "airootfs" | head -1)
           if [ -n "$AIROOTFS" ]; then
             cp -r "$AIROOTFS/." /tmp/kwamlinux-profile/airootfs/
+            echo "airootfs overlay applied"
           fi
 
+          # Write OS identity
           mkdir -p /tmp/kwamlinux-profile/airootfs/etc
-          printf 'NAME="Kwamlinux"\nVERSION="1.0.0"\nID=kwamlinux\nID_LIKE=arch\nPRETTY_NAME="Kwamlinux Linux 1.0.0"\nBUILD_ID=rolling\n' > /tmp/kwamlinux-profile/airootfs/etc/os-release
+          printf 'NAME="Kwamlinux"\nVERSION="1.0.0"\nID=kwamlinux\nID_LIKE=arch\nPRETTY_NAME="Kwamlinux Linux 1.0.0"\nBUILD_ID=rolling\n' \
+            > /tmp/kwamlinux-profile/airootfs/etc/os-release
+
+          # Set hostname
           printf 'kwamlinux\n' > /tmp/kwamlinux-profile/airootfs/etc/hostname
 
+          # Build the ISO
           mkdir -p /tmp/kwamlinux-work /tmp/kwamlinux-out
-          mkarchiso -v -w /tmp/kwamlinux-work -o /tmp/kwamlinux-out /tmp/kwamlinux-profile
+          mkarchiso -v \
+            -w /tmp/kwamlinux-work \
+            -o /tmp/kwamlinux-out \
+            /tmp/kwamlinux-profile
+
+          echo "ISO build complete!"
 
       - name: Upload ISO
         uses: actions/upload-artifact@v4
