@@ -1,6 +1,6 @@
 # ============================================================
-# KWAM LINUX - Package List
-# Base + Security + Wine + Desktop
+# KWAMLINUX - Official Repo Packages Only
+# AUR packages removed (install after boot via kwamlinux CLI)
 # ============================================================
 
 # --- BASE SYSTEM ---
@@ -22,64 +22,53 @@ vim
 nano
 htop
 btop
-neofetch
 zsh
 bash
 man-db
 man-pages
 reflector
 archiso
+syslinux
+memtest86+
+edk2-shell
 
-# --- SECURITY TOOLS (Kali-like) ---
+# --- SECURITY TOOLS (official repos only) ---
 nmap
 wireshark-qt
 aircrack-ng
-metasploit
 john
 hashcat
 hydra
 sqlmap
 gobuster
 nikto
-burpsuite
 netcat
 tcpdump
 ettercap-gtk
 bettercap
-exploitdb
-maltego
-autopsy
-volatility3
-foremost
 binwalk
 radare2
-ghidra
 gdb
 strace
 ltrace
-
-# --- SYSTEM HARDENING ---
+rkhunter
+lynis
+clamav
+firejail
 ufw
 fail2ban
 apparmor
-firejail
-clamav
-rkhunter
-lynis
+foremost
 
 # --- WINDOWS APP SUPPORT ---
 wine
 wine-mono
 wine-gecko
 winetricks
-proton
 lutris
-bottles
 
-# --- DESKTOP ENVIRONMENT (KDE Plasma - Premium feel) ---
+# --- DESKTOP (KDE Plasma) ---
 plasma-meta
-plasma-wayland-session
-kde-applications-meta
 sddm
 sddm-kcm
 xorg-server
@@ -92,14 +81,14 @@ pipewire-alsa
 wireplumber
 qt5-wayland
 qt6-wayland
+kde-applications-meta
 
-# --- PREMIUM FONTS ---
+# --- FONTS ---
 ttf-jetbrains-mono
 ttf-fira-code
 noto-fonts
 noto-fonts-emoji
 ttf-roboto
-ttf-ubuntu-font-family
 
 # --- APPS ---
 firefox
@@ -110,8 +99,6 @@ spectacle
 gwenview
 okular
 vlc
-code
-discord
 thunderbird
 libreoffice-fresh
 
@@ -120,10 +107,8 @@ python
 python-pip
 nodejs
 npm
-rustup
 go
 docker
 docker-compose
 jdk-openjdk
-gdb
 cmake
