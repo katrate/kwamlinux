@@ -1,0 +1,39 @@
+name: Build Kwamlinux ISO
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Update system & install archiso
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm archiso git curl
+
+      - name: Make scripts executable
+        run: |
+          chmod +x build.sh
+          chmod +x scripts/install.sh 2>/dev/null || true
+          chmod +x install-theme.sh 2>/dev/null || true
+
+      - name: Build Kwamlinux ISO
+        run: |
+          mkdir -p output
+          sudo ./build.sh
+
+      - name: Upload ISO as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: KwamLinux-ISO
+          path: output/*.iso
+          retention-days: 30
